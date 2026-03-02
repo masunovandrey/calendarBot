@@ -49,12 +49,9 @@ async def parse_event_with_gemini(raw_text: str, today: str) -> tuple[dict | Non
     Returns (event_data, error_message).
     """
 
-    user_prompt = f"Today is {today}. Parse this event: {raw_text}"
+    user_prompt = f"{SYSTEM_PROMPT}\n\nToday is {today}. Parse this event: {raw_text}"
 
     payload = {
-        "system_instruction": {
-            "parts": [{"text": SYSTEM_PROMPT}]
-        },
         "contents": [
             {"parts": [{"text": user_prompt}]}
         ],
