@@ -97,7 +97,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"📌 *{title}*\n"
         f"📅 {date_str}{time_display}"
         f"{location_display}\n\n"
-        f"👥 Invites sent to all members!\n"
+        f"👥 Added to shared calendar for all members!\n"
         f"[View in Google Calendar]({event_link})",
         parse_mode="Markdown",
         disable_web_page_preview=True
