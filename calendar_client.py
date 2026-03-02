@@ -102,7 +102,7 @@ def create_calendar_event(event_data: dict) -> tuple[str | None, str | None]:
         created_event = service.events().insert(
             calendarId=CALENDAR_ID,
             body=body,
-            # Note: Service accounts can't send email invites, but attendees are still added to the event
+            # Note: Service accounts can't send invites, but attendees are still added to the event
         ).execute()
 
         event_link = created_event.get("htmlLink", "https://calendar.google.com")
