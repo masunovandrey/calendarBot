@@ -44,11 +44,11 @@ def build_event_body(event_data: dict) -> dict:
     location = event_data.get("location")
     description = event_data.get("description")
 
-    attendees = [{"email": email} for email in MEMBER_EMAILS]
+    # Note: Service accounts cannot add attendees
+    # The event will be visible to everyone who has access to the shared calendar
 
     body = {
         "summary": title,
-        "attendees": attendees,
         "reminders": {
             "useDefault": False,
             "overrides": [
@@ -56,8 +56,6 @@ def build_event_body(event_data: dict) -> dict:
                 {"method": "email", "minutes": 1440},  # 1 day before
             ],
         },
-        "guestsCanSeeOtherGuests": True,
-        "guestsCanInviteOthers": False,
     }
 
     if location:
@@ -102,7 +100,6 @@ def create_calendar_event(event_data: dict) -> tuple[str | None, str | None]:
         created_event = service.events().insert(
             calendarId=CALENDAR_ID,
             body=body,
-            # Note: Service accounts can't send invites, but attendees are still added to the event
         ).execute()
 
         event_link = created_event.get("htmlLink", "https://calendar.google.com")
