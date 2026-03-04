@@ -1,0 +1,1361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Setup Guide: Telegram → Google Calendar Bot</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #f8f7f4;
+    --white: #ffffff;
+    --dark: #141414;
+    --muted: #888;
+    --border: #e8e4dc;
+    --tg: #0088cc;
+    --gemini: #8b5cf6;
+    --google: #ea4335;
+    --railway: #7c3aed;
+    --done: #16a34a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    color: var(--dark);
+    padding: 0 0 80px;
+  }
+
+  /* Hero */
+  .hero {
+    background: var(--dark);
+    color: white;
+    padding: 48px 32px 40px;
+    text-align: center;
+  }
+
+  .hero-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.4);
+    margin-bottom: 12px;
+  }
+
+  .hero h1 {
+    font-size: clamp(22px, 4vw, 38px);
+    font-weight: 800;
+    letter-spacing: -1px;
+    margin-bottom: 8px;
+  }
+
+  .hero-sub {
+    color: rgba(255,255,255,0.5);
+    font-size: 14px;
+  }
+
+  /* Progress bar */
+  .progress-bar {
+    display: flex;
+    background: white;
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    scrollbar-width: none;
+  }
+
+  .progress-bar::-webkit-scrollbar { display: none; }
+
+  .prog-step {
+    flex: 1;
+    min-width: 100px;
+    padding: 14px 10px;
+    text-align: center;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+
+  .prog-step:hover { color: var(--dark); }
+  .prog-step.active { color: var(--dark); border-bottom-color: var(--dark); }
+  .prog-step.completed { color: var(--done); border-bottom-color: var(--done); }
+
+  .prog-num {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: currentColor;
+    color: white;
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .prog-step.completed .prog-num::after { content: '✓'; }
+
+  /* Main layout */
+  .main {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 40px 20px 0;
+  }
+
+  /* Phase card */
+  .phase {
+    display: none;
+    animation: fadeIn 0.3s ease;
+  }
+
+  .phase.active { display: block; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .phase-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  .phase-icon {
+    width: 52px; height: 52px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    flex-shrink: 0;
+  }
+
+  .phase-meta { flex: 1; }
+
+  .phase-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .phase-title {
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    margin-bottom: 4px;
+  }
+
+  .phase-desc { color: var(--muted); font-size: 14px; }
+
+  .time-badge {
+    background: var(--dark);
+    color: white;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    white-space: nowrap;
+  }
+
+  /* Step card */
+  .step-card {
+    background: var(--white);
+    border: 1.5px solid var(--border);
+    border-radius: 16px;
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+
+  .step-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 18px 20px;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .step-header:hover { background: #fafaf9; }
+
+  .step-num {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--dark);
+    color: white;
+    font-size: 13px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .step-num.done { background: var(--done); }
+
+  .step-title {
+    flex: 1;
+    font-weight: 700;
+    font-size: 15px;
+  }
+
+  .step-chevron {
+    color: var(--muted);
+    font-size: 18px;
+    transition: transform 0.2s;
+  }
+
+  .step-card.open .step-chevron { transform: rotate(180deg); }
+
+  .step-body {
+    display: none;
+    padding: 0 20px 20px;
+    border-top: 1px solid var(--border);
+  }
+
+  .step-card.open .step-body { display: block; }
+
+  /* Sub-steps */
+  .substep {
+    display: flex;
+    gap: 14px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .substep:last-child { border-bottom: none; }
+
+  .substep-num {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .substep-content { flex: 1; }
+
+  .substep-title {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 4px;
+  }
+
+  .substep-desc {
+    font-size: 13px;
+    color: #555;
+    line-height: 1.6;
+  }
+
+  .substep-desc b { color: var(--dark); }
+
+  /* Code block */
+  .code {
+    background: #1a1a2e;
+    color: #e8eaf0;
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    line-height: 1.7;
+    margin: 8px 0;
+    overflow-x: auto;
+    position: relative;
+  }
+
+  .code .c { color: #6b7280; }
+  .code .k { color: #93c5fd; }
+  .code .s { color: #86efac; }
+  .code .v { color: #fde68a; }
+
+  .copy-btn {
+    position: absolute;
+    top: 8px; right: 8px;
+    background: rgba(255,255,255,0.1);
+    border: none;
+    color: rgba(255,255,255,0.6);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    transition: all 0.2s;
+  }
+
+  .copy-btn:hover { background: rgba(255,255,255,0.2); color: white; }
+
+  /* Link pill */
+  .link-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: #1d4ed8;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    margin: 4px 4px 4px 0;
+    transition: all 0.2s;
+  }
+
+  .link-pill:hover { background: #dbeafe; }
+
+  /* Callout */
+  .callout {
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 13px;
+    line-height: 1.6;
+    margin: 10px 0;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  .callout.info { background: #eff6ff; border-left: 3px solid #3b82f6; }
+  .callout.warn { background: #fffbeb; border-left: 3px solid #f59e0b; }
+  .callout.tip { background: #f0fdf4; border-left: 3px solid #22c55e; }
+
+  .callout-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .callout-text { color: #374151; }
+  .callout-text b { color: var(--dark); }
+
+  /* Env var table */
+  .env-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin: 10px 0;
+  }
+
+  .env-table th {
+    text-align: left;
+    padding: 8px 12px;
+    background: var(--bg);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .env-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+
+  .env-table tr:last-child td { border-bottom: none; }
+
+  .env-key {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: #7c3aed;
+    white-space: nowrap;
+  }
+
+  .env-desc { color: #555; line-height: 1.5; }
+
+  .badge-req {
+    display: inline-block;
+    background: #fde8e8;
+    color: #dc2626;
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    padding: 1px 6px;
+    border-radius: 4px;
+  }
+
+  /* Nav buttons */
+  .nav-buttons {
+    display: flex;
+    gap: 12px;
+    margin-top: 32px;
+    justify-content: space-between;
+  }
+
+  .btn {
+    padding: 12px 24px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+
+  .btn-primary {
+    background: var(--dark);
+    color: white;
+    flex: 1;
+  }
+
+  .btn-primary:hover { background: #333; transform: translateY(-1px); }
+
+  .btn-secondary {
+    background: white;
+    color: var(--dark);
+    border: 1.5px solid var(--border);
+  }
+
+  .btn-secondary:hover { border-color: var(--dark); }
+  .btn-secondary:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  /* Check button */
+  .check-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0 4px;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .check-wrap input[type="checkbox"] {
+    width: 18px; height: 18px;
+    cursor: pointer;
+    accent-color: var(--done);
+  }
+
+  .check-wrap label {
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--muted);
+  }
+
+  .check-wrap input:checked + label { color: var(--done); }
+
+  /* Screenshot placeholder */
+  .screen-placeholder {
+    background: #f1f5f9;
+    border: 2px dashed #cbd5e1;
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    font-size: 12px;
+    color: #94a3b8;
+    margin: 8px 0;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .img-label {
+    font-size: 11px;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 4px;
+    font-style: italic;
+  }
+
+  /* Final success screen */
+  .success-screen {
+    text-align: center;
+    padding: 40px 20px;
+  }
+
+  .success-icon {
+    font-size: 64px;
+    margin-bottom: 16px;
+    display: block;
+  }
+
+  .success-title {
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    margin-bottom: 8px;
+  }
+
+  .success-sub {
+    color: var(--muted);
+    font-size: 15px;
+    margin-bottom: 32px;
+  }
+
+  .test-messages {
+    background: #1a1a2e;
+    color: white;
+    border-radius: 16px;
+    padding: 24px;
+    text-align: left;
+    max-width: 500px;
+    margin: 0 auto 24px;
+  }
+
+  .test-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.4);
+    margin-bottom: 14px;
+  }
+
+  .test-msg {
+    background: rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    font-size: 14px;
+    font-family: 'JetBrains Mono', monospace;
+    color: #86efac;
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-eyebrow">step-by-step setup guide</div>
+  <h1>🤖 Telegram → Google Calendar Bot</h1>
+  <p class="hero-sub">Complete setup in ~45 minutes · 100% free · No prior experience needed</p>
+</div>
+
+<!-- Progress -->
+<div class="progress-bar" id="progressBar">
+  <div class="prog-step active" onclick="goTo(0)" id="prog-0">
+    <div class="prog-num">1</div> Telegram Bot
+  </div>
+  <div class="prog-step" onclick="goTo(1)" id="prog-1">
+    <div class="prog-num">2</div> Gemini Key
+  </div>
+  <div class="prog-step" onclick="goTo(2)" id="prog-2">
+    <div class="prog-num">3</div> Google Calendar
+  </div>
+  <div class="prog-step" onclick="goTo(3)" id="prog-3">
+    <div class="prog-num">4</div> Code & GitHub
+  </div>
+  <div class="prog-step" onclick="goTo(4)" id="prog-4">
+    <div class="prog-num">5</div> Deploy Railway
+  </div>
+  <div class="prog-step" onclick="goTo(5)" id="prog-5">
+    <div class="prog-num">6</div> Test It!
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- ═══════════════════════════════════════
+       PHASE 1: Telegram Bot
+  ════════════════════════════════════════ -->
+  <div class="phase active" id="phase-0">
+    <div class="phase-header">
+      <div class="phase-icon" style="background:#e0f2fe">🤖</div>
+      <div class="phase-meta">
+        <div class="phase-tag" style="color:var(--tg)">Step 1 of 6</div>
+        <div class="phase-title">Create Your Telegram Bot</div>
+        <div class="phase-desc">Register the bot and get your token. Takes about 2 minutes.</div>
+      </div>
+      <span class="time-badge">~2 min</span>
+    </div>
+
+    <div class="step-card open">
+      <div class="step-header" onclick="toggleStep(this)">
+        <div class="step-num">1</div>
+        <div class="step-title">Open BotFather in Telegram</div>
+        <div class="step-chevron">⌄</div>
+      </div>
+      <div class="step-body">
+        <div class="substep">
+          <div class="substep-num">a</div>
+          <div class="substep-content">
+            <div class="substep-title">Open Telegram (app or web)</div>
+            <div class="substep-desc">Use the desktop app, mobile app, or <b>web.telegram.org</b> — any works.</div>
+          </div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">b</div>
+          <div class="substep-content">
+            <div class="substep-title">Search for @BotFather</div>
+            <div class="substep-desc">In the search bar, type <b>@BotFather</b> — it's an official Telegram bot (blue checkmark). Click on it and press <b>Start</b>.</div>
+            <a href="https://t.me/botfather" class="link-pill" target="_blank">🔗 Open @BotFather</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-header" onclick="toggleStep(this)">
+        <div class="step-num">2</div>
+        <div class="step-title">Create a new bot</div>
+        <div class="step-chevron">⌄</div>
+      </div>
+      <div class="step-body">
+        <div class="substep">
+          <div class="substep-num">a</div>
+          <div class="substep-content">
+            <div class="substep-title">Send /newbot command</div>
+            <div class="substep-desc">Type and send this message to BotFather:</div>
+            <div class="code"><button class="copy-btn" onclick="copyCode(this)">/newbot</button>/newbot</div>
+          </div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">b</div>
+          <div class="substep-content">
+            <div class="substep-title">Choose a display name</div>
+            <div class="substep-desc">BotFather will ask: <b>"Alright, a new bot. How are we going to call it?"</b><br>
+            Type a friendly name, for example:</div>
+            <div class="code">Family Calendar</div>
+          </div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">c</div>
+          <div class="substep-content">
+            <div class="substep-title">Choose a username</div>
+            <div class="substep-desc">BotFather will ask for a username. It must be unique and end in <b>bot</b>. Try something like:</div>
+            <div class="code">family_calendar_42bot</div>
+            <div class="callout info">
+              <span class="callout-icon">💡</span>
+              <div class="callout-text">If the name is taken, just add numbers until it works. The username is only used to find the bot — it doesn't matter what it is.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-header" onclick="toggleStep(this)">
+        <div class="step-num">3</div>
+        <div class="step-title">Copy your bot token</div>
+        <div class="step-chevron">⌄</div>
+      </div>
+      <div class="step-body">
+        <div class="substep">
+          <div class="substep-num">a</div>
+          <div class="substep-content">
+            <div class="substep-title">Find the token in BotFather's message</div>
+            <div class="substep-desc">After creating the bot, BotFather sends a message with your token. It looks like this:</div>
+            <div class="code"><span class="c"># Your token will look like this:</span>
+7284619302:AAHxKqPmWvnLbcXyZ1234abcdef5678ghij</div>
+            <div class="callout warn">
+              <span class="callout-icon">⚠️</span>
+              <div class="callout-text"><b>Keep this secret!</b> Anyone with this token can control your bot. Never commit it to GitHub. We'll store it safely as an environment variable.</div>
+            </div>
+          </div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">b</div>
+          <div class="substep-content">
+            <div class="substep-title">Save it somewhere temporarily</div>
+            <div class="substep-desc">Paste it in a notepad — you'll need it in Step 5 (Railway environment variables).</div>
+            <div class="check-wrap">
+              <input type="checkbox" id="chk-tg" onchange="checkDone(this)">
+              <label for="chk-tg">✅ I have my TELEGRAM_TOKEN saved</label>
+            </div>
+          </div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">c</div>
+          <div class="substep-content">
+            <div class="substep-title">Add the bot to your group chat</div>
+            <div class="substep-desc">Create a Telegram group with your 2–4 family members. Then add your new bot to the group: open group info → Add Members → search for your bot username → Add.</div>
+            <div class="callout tip">
+              <span class="callout-icon">💡</span>
+              <div class="callout-text">The bot works in both direct messages <b>and</b> group chats. For a family setup, add it to a shared group so anyone can send events.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav-buttons">
+      <button class="btn btn-secondary" disabled>← Previous</button>
+      <button class="btn btn-primary" onclick="goTo(1)">Next: Get Gemini API Key →</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       PHASE 2: Gemini Key
+  ════════════════════════════════════════ -->
+  <div class="phase" id="phase-1">
+    <div class="phase-header">
+      <div class="phase-icon" style="background:#ede9fe">✨</div>
+      <div class="phase-meta">
+        <div class="phase-tag" style="color:var(--gemini)">Step 2 of 6</div>
+        <div class="phase-title">Get a Free Gemini API Key</div>
+        <div class="phase-desc">This is what parses your natural language messages into event data.</div>
+      </div>
+      <span class="time-badge">~3 min</span>
+    </div>
+
+    <div class="step-card open">
+      <div class="step-header" onclick="toggleStep(this)">
+        <div class="step-num">1</div>
+        <div class="step-title">Go to Google AI Studio</div>
+        <div class="step-chevron">⌄</div>
+      </div>
+      <div class="step-body">
+        <div class="substep">
+          <div class="substep-num">a</div>
+          <div class="substep-content">
+            <div class="substep-title">Open Google AI Studio</div>
+            <div class="substep-desc">Click the link below. Sign in with any Google account.</div>
+            <a href="https://aistudio.google.com/app/apikey" class="link-pill" target="_blank">🔗 Open Google AI Studio</a>
+          </div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">b</div>
+          <div class="substep-content">
+            <div class="substep-title">Click "Create API key"</div>
+            <div class="substep-desc">On the API Keys page, click the blue <b>Create API key</b> button at the top left. Select <b>Create API key in new project</b>.</div>
+          </div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">c</div>
+          <div class="substep-content">
+            <div class="substep-title">Copy the key</div>
+            <div class="substep-desc">Your key appears — it starts with <b>AIza...</b>. Click the copy icon next to it.</div>
+            <div class="code"><span class="c"># Looks like this:</span>
+AIzaSyD8x2Kp7mNqRt3WvYzAbCdEf1GhIjKlMnO</div>
+            <div class="callout tip">
+              <span class="callout-icon">🆓</span>
+              <div class="callout-text"><b>Free tier:</b> 15 requests/minute, 1 million tokens/day. For 2–4 people sending a few events per day, you'll never hit this limit. <b>No credit card required.</b></div>
+            </div>
+            <div class="check-wrap">
+              <input type="checkbox" id="chk-gemini" onchange="checkDone(this)">
+              <label for="chk-gemini">✅ I have my GEMINI_API_KEY saved</label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav-buttons">
+      <button class="btn btn-secondary" onclick="goTo(0)">← Previous</button>
+      <button class="btn btn-primary" onclick="goTo(2)">Next: Google Calendar Setup →</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       PHASE 3: Google Calendar
+  ════════════════════════════════════════ -->
+  <div class="phase" id="phase-2">
+    <div class="phase-header">
+      <div class="phase-icon" style="background:#fef2f2">📅</div>
+      <div class="phase-meta">
+        <div class="phase-tag" style="color:var(--google)">Step 3 of 6</div>
+        <div class="phase-title">Set Up Google Calendar API</div>
+        <div class="phase-desc">The most steps — but each one is simple. Follow carefully.</div>
+      </div>
+      <span class="time-badge">~15 min</span>
+    </div>
+
+    <div class="step-card open">
+      <div class="step-header" onclick="toggleStep(this)">
+        <div class="step-num">1</div>
+        <div class="step-title">Create a Google Cloud project</div>
+        <div class="step-chevron">⌄</div>
+      </div>
+      <div class="step-body">
+        <div class="substep">
+          <div class="substep-num">a</div>
+          <div class="substep-content">
+            <div class="substep-title">Open Google Cloud Console</div>
+            <a href="https://console.cloud.google.com" class="link-pill" target="_blank">🔗 console.cloud.google.com</a>
+            <div class="substep-desc" style="margin-top:6px">Sign in with your Google account.</div>
+          </div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">b</div>
+          <div class="substep-content">
+            <div class="substep-title">Create a new project</div>
+            <div class="substep-desc">
+              1. At the top, click the <b>project dropdown</b> (next to "Google Cloud")<br>
+              2. Click <b>New Project</b> (top right of the popup)<br>
+              3. Name it <b>calbot</b><br>
+              4. Click <b>Create</b><br>
+              5. Wait ~10 seconds, then select the new project from the dropdown
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-header" onclick="toggleStep(this)">
+        <div class="step-num">2</div>
+        <div class="step-title">Enable the Google Calendar API</div>
+        <div class="step-chevron">⌄</div>
+      </div>
+      <div class="step-body">
+        <div class="substep">
+          <div class="substep-num">a</div>
+          <div class="substep-content">
+            <div class="substep-title">Go to APIs & Services → Library</div>
+            <div class="substep-desc">In the left sidebar click <b>APIs & Services</b> → <b>Library</b>.<br>Or use this direct link:</div>
+            <a href="https://console.cloud.google.com/apis/library" class="link-pill" target="_blank">🔗 API Library</a>
+          </div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">b</div>
+          <div class="substep-content">
+            <div class="substep-title">Search and enable</div>
+            <div class="substep-desc">
+              1. Search for <b>Google Calendar API</b><br>
+              2. Click the result<br>
+              3. Click the big blue <b>Enable</b> button<br>
+              4. Wait for it to enable (a few seconds)
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-header" onclick="toggleStep(this)">
+        <div class="step-num">3</div>
+        <div class="step-title">Create a Service Account</div>
+        <div class="step-chevron">⌄</div>
+      </div>
+      <div class="step-body">
+        <div class="callout info">
+          <span class="callout-icon">ℹ️</span>
+          <div class="callout-text">A service account is like a robot Google account that the bot uses to create calendar events. It doesn't need a password — it uses a JSON key file instead.</div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">a</div>
+          <div class="substep-content">
+            <div class="substep-title">Go to Credentials</div>
+            <div class="substep-desc">Left sidebar → <b>APIs & Services</b> → <b>Credentials</b></div>
+            <a href="https://console.cloud.google.com/apis/credentials" class="link-pill" target="_blank">🔗 Credentials page</a>
+          </div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">b</div>
+          <div class="substep-content">
+            <div class="substep-title">Create the service account</div>
+            <div class="substep-desc">
+              1. Click <b>+ Create Credentials</b> → <b>Service Account</b><br>
+              2. Service account name: <b>calbot-service</b><br>
+              3. Click <b>Create and Continue</b><br>
+              4. Skip the optional "Grant access" and "Grant users access" steps<br>
+              5. Click <b>Done</b>
+            </div>
+          </div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">c</div>
+          <div class="substep-content">
+            <div class="substep-title">Download the JSON key</div>
+            <div class="substep-desc">
+              1. Back on Credentials page, click on <b>calbot-service</b> account<br>
+              2. Go to the <b>Keys</b> tab<br>
+              3. Click <b>Add Key</b> → <b>Create new key</b><br>
+              4. Select <b>JSON</b> → click <b>Create</b><br>
+              5. A <b>.json file downloads</b> automatically — keep it safe!
+            </div>
+            <div class="callout warn">
+              <span class="callout-icon">⚠️</span>
+              <div class="callout-text"><b>Never upload this .json file to GitHub!</b> We'll paste its content as an environment variable in Railway instead.</div>
+            </div>
+          </div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">d</div>
+          <div class="substep-content">
+            <div class="substep-title">Note the service account email</div>
+            <div class="substep-desc">On the Credentials page, you'll see your service account has an email like:<br>
+            <b>calbot-service@calbot-12345.iam.gserviceaccount.com</b><br>
+            Copy it — you'll need it in the next step.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-header" onclick="toggleStep(this)">
+        <div class="step-num">4</div>
+        <div class="step-title">Share your Google Calendar with the bot</div>
+        <div class="step-chevron">⌄</div>
+      </div>
+      <div class="step-body">
+        <div class="callout info">
+          <span class="callout-icon">ℹ️</span>
+          <div class="callout-text">You need to share a calendar with your service account, so it has permission to create events. We recommend creating a <b>new shared calendar</b> just for the family bot.</div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">a</div>
+          <div class="substep-content">
+            <div class="substep-title">Open Google Calendar</div>
+            <a href="https://calendar.google.com" class="link-pill" target="_blank">🔗 calendar.google.com</a>
+          </div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">b</div>
+          <div class="substep-content">
+            <div class="substep-title">Create a new shared family calendar (recommended)</div>
+            <div class="substep-desc">
+              1. In the left sidebar, click <b>+</b> next to "Other calendars"<br>
+              2. Select <b>Create new calendar</b><br>
+              3. Name it <b>Family Bot</b> (or anything you like)<br>
+              4. Click <b>Create calendar</b>
+            </div>
+          </div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">c</div>
+          <div class="substep-content">
+            <div class="substep-title">Share the calendar with the service account</div>
+            <div class="substep-desc">
+              1. Find your new calendar in the left sidebar<br>
+              2. Click the <b>three dots (⋮)</b> next to it → <b>Settings and sharing</b><br>
+              3. Scroll to <b>"Share with specific people or groups"</b><br>
+              4. Click <b>+ Add people and groups</b><br>
+              5. Enter the service account email: <b>calbot-service@calbot-XXXXX.iam.gserviceaccount.com</b><br>
+              6. Set permission to <b>"Make changes to events"</b><br>
+              7. Click <b>Send</b>
+            </div>
+          </div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">d</div>
+          <div class="substep-content">
+            <div class="substep-title">Share the calendar with all family members too</div>
+            <div class="substep-desc">
+              Same settings page → Add each family member's Gmail address with <b>"Make changes to events"</b> permission so everyone can see and edit events.
+            </div>
+          </div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">e</div>
+          <div class="substep-content">
+            <div class="substep-title">Copy the Calendar ID</div>
+            <div class="substep-desc">
+              Still on the settings page, scroll to <b>"Integrate calendar"</b>.<br>
+              Copy the <b>Calendar ID</b> — it looks like:<br>
+              <b>abc123xyz@group.calendar.google.com</b>
+            </div>
+            <div class="check-wrap">
+              <input type="checkbox" id="chk-cal" onchange="checkDone(this)">
+              <label for="chk-cal">✅ I have my Calendar ID and downloaded the service account JSON</label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav-buttons">
+      <button class="btn btn-secondary" onclick="goTo(1)">← Previous</button>
+      <button class="btn btn-primary" onclick="goTo(3)">Next: Set Up the Code →</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       PHASE 4: Code & GitHub
+  ════════════════════════════════════════ -->
+  <div class="phase" id="phase-3">
+    <div class="phase-header">
+      <div class="phase-icon" style="background:#f0f9ff">💻</div>
+      <div class="phase-meta">
+        <div class="phase-tag" style="color:#0ea5e9">Step 4 of 6</div>
+        <div class="phase-title">Get the Code onto GitHub</div>
+        <div class="phase-desc">Put the project files in a GitHub repo so Railway can deploy them.</div>
+      </div>
+      <span class="time-badge">~10 min</span>
+    </div>
+
+    <div class="step-card open">
+      <div class="step-header" onclick="toggleStep(this)">
+        <div class="step-num">1</div>
+        <div class="step-title">Download the project files</div>
+        <div class="step-chevron">⌄</div>
+      </div>
+      <div class="step-body">
+        <div class="substep">
+          <div class="substep-num">a</div>
+          <div class="substep-content">
+            <div class="substep-title">Get the files from this conversation</div>
+            <div class="substep-desc">
+              Download all 6 files from the previous message:<br>
+              <b>bot.py</b>, <b>parser.py</b>, <b>calendar_client.py</b>, <b>requirements.txt</b>, <b>railway.toml</b>, <b>Procfile</b>
+            </div>
+            <div class="callout tip">
+              <span class="callout-icon">💡</span>
+              <div class="callout-text">Create a folder on your computer called <b>calbot</b> and put all 6 files in it.</div>
+            </div>
+          </div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">b</div>
+          <div class="substep-content">
+            <div class="substep-title">DO NOT create a .env file</div>
+            <div class="substep-desc">We will <b>not</b> put secrets in any file. We'll add them directly in Railway's environment variable UI. This keeps secrets out of GitHub.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-header" onclick="toggleStep(this)">
+        <div class="step-num">2</div>
+        <div class="step-title">Create a GitHub repository</div>
+        <div class="step-chevron">⌄</div>
+      </div>
+      <div class="step-body">
+        <div class="substep">
+          <div class="substep-num">a</div>
+          <div class="substep-content">
+            <div class="substep-title">Go to GitHub and create a new repo</div>
+            <a href="https://github.com/new" class="link-pill" target="_blank">🔗 github.com/new</a>
+            <div class="substep-desc" style="margin-top:8px">
+              • Name: <b>calbot</b><br>
+              • Visibility: <b>Private</b> (important! keeps your code private)<br>
+              • Click <b>Create repository</b>
+            </div>
+          </div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">b</div>
+          <div class="substep-content">
+            <div class="substep-title">Create a .gitignore file</div>
+            <div class="substep-desc">In your calbot folder, create a file named <b>.gitignore</b> with this content to prevent accidentally committing secrets:</div>
+            <div class="code"><button class="copy-btn" onclick="copyCode(this)">copy</button>.env
+*.json
+__pycache__/
+*.pyc
+.DS_Store</div>
+          </div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">c</div>
+          <div class="substep-content">
+            <div class="substep-title">Push your code to GitHub</div>
+            <div class="substep-desc">Open a terminal in your calbot folder and run:</div>
+            <div class="code"><button class="copy-btn" onclick="copyCode(this)">copy</button><span class="c"># Initialize git and push</span>
+git init
+git add .
+git commit -m "Initial bot setup"
+git branch -M main
+git remote add origin https://github.com/YOUR_USERNAME/calbot.git
+git push -u origin main</div>
+            <div class="substep-desc">Replace <b>YOUR_USERNAME</b> with your GitHub username.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav-buttons">
+      <button class="btn btn-secondary" onclick="goTo(2)">← Previous</button>
+      <button class="btn btn-primary" onclick="goTo(4)">Next: Deploy to Railway →</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       PHASE 5: Railway Deploy
+  ════════════════════════════════════════ -->
+  <div class="phase" id="phase-4">
+    <div class="phase-header">
+      <div class="phase-icon" style="background:#f5f3ff">🚀</div>
+      <div class="phase-meta">
+        <div class="phase-tag" style="color:var(--railway)">Step 5 of 6</div>
+        <div class="phase-title">Deploy to Railway</div>
+        <div class="phase-desc">Connect your GitHub repo and add your environment variables.</div>
+      </div>
+      <span class="time-badge">~10 min</span>
+    </div>
+
+    <div class="step-card open">
+      <div class="step-header" onclick="toggleStep(this)">
+        <div class="step-num">1</div>
+        <div class="step-title">Create a Railway account & project</div>
+        <div class="step-chevron">⌄</div>
+      </div>
+      <div class="step-body">
+        <div class="substep">
+          <div class="substep-num">a</div>
+          <div class="substep-content">
+            <div class="substep-title">Sign up for Railway</div>
+            <a href="https://railway.app" class="link-pill" target="_blank">🔗 railway.app</a>
+            <div class="substep-desc" style="margin-top:6px">Click <b>Login</b> → sign up with your <b>GitHub account</b> (easiest). Railway gives $5/month free credit — more than enough for this bot.</div>
+          </div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">b</div>
+          <div class="substep-content">
+            <div class="substep-title">Create a new project</div>
+            <div class="substep-desc">
+              1. Click <b>New Project</b><br>
+              2. Select <b>Deploy from GitHub repo</b><br>
+              3. Authorize Railway to access your GitHub if prompted<br>
+              4. Select your <b>calbot</b> repository<br>
+              5. Click <b>Deploy Now</b>
+            </div>
+            <div class="callout warn">
+              <span class="callout-icon">⚠️</span>
+              <div class="callout-text">The first deploy will <b>fail</b> — that's expected! We haven't added the environment variables yet. Continue to the next step.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-header" onclick="toggleStep(this)">
+        <div class="step-num">2</div>
+        <div class="step-title">Add environment variables</div>
+        <div class="step-chevron">⌄</div>
+      </div>
+      <div class="step-body">
+        <div class="substep">
+          <div class="substep-num">a</div>
+          <div class="substep-content">
+            <div class="substep-title">Open the Variables tab</div>
+            <div class="substep-desc">In Railway, click on your service → go to the <b>Variables</b> tab.</div>
+          </div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">b</div>
+          <div class="substep-content">
+            <div class="substep-title">Add all variables one by one</div>
+            <div class="substep-desc" style="margin-bottom:10px">Click <b>"Add Variable"</b> for each row below:</div>
+            <table class="env-table">
+              <tr>
+                <th>Variable name</th>
+                <th>Value</th>
+              </tr>
+              <tr>
+                <td><div class="env-key">TELEGRAM_TOKEN</div></td>
+                <td><div class="env-desc">Your bot token from @BotFather<br><span class="badge-req">required</span></div></td>
+              </tr>
+              <tr>
+                <td><div class="env-key">GEMINI_API_KEY</div></td>
+                <td><div class="env-desc">Your key from Google AI Studio (starts with AIza...)<br><span class="badge-req">required</span></div></td>
+              </tr>
+              <tr>
+                <td><div class="env-key">GOOGLE_SERVICE_ACCOUNT_JSON</div></td>
+                <td><div class="env-desc">Open the downloaded .json file in a text editor, select ALL the content, copy and paste it here as one line<br><span class="badge-req">required</span></div></td>
+              </tr>
+              <tr>
+                <td><div class="env-key">CALENDAR_ID</div></td>
+                <td><div class="env-desc">The Calendar ID you copied from Google Calendar settings (e.g. abc123@group.calendar.google.com)<br><span class="badge-req">required</span></div></td>
+              </tr>
+              <tr>
+                <td><div class="env-key">MEMBER_EMAILS</div></td>
+                <td><div class="env-desc">Comma-separated Gmail addresses of all members, e.g:<br><code>alice@gmail.com,bob@gmail.com</code><br><span class="badge-req">required</span></div></td>
+              </tr>
+              <tr>
+                <td><div class="env-key">TIMEZONE</div></td>
+                <td><div class="env-desc">Your timezone, e.g. <code>Europe/Berlin</code> or <code>Europe/Warsaw</code><br><span class="badge-req">required</span></div></td>
+              </tr>
+            </table>
+          </div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">c</div>
+          <div class="substep-content">
+            <div class="substep-title">Save and redeploy</div>
+            <div class="substep-desc">After adding all variables, Railway will automatically redeploy. Watch the <b>Deployments</b> tab — it should show a green <b>Success</b> after ~60 seconds.</div>
+            <div class="check-wrap">
+              <input type="checkbox" id="chk-railway" onchange="checkDone(this)">
+              <label for="chk-railway">✅ Railway shows green "Active" deployment</label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav-buttons">
+      <button class="btn btn-secondary" onclick="goTo(3)">← Previous</button>
+      <button class="btn btn-primary" onclick="goTo(5)">Next: Test Your Bot! →</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       PHASE 6: Test
+  ════════════════════════════════════════ -->
+  <div class="phase" id="phase-5">
+    <div class="phase-header">
+      <div class="phase-icon" style="background:#f0fdf4">🎉</div>
+      <div class="phase-meta">
+        <div class="phase-tag" style="color:var(--done)">Step 6 of 6</div>
+        <div class="phase-title">Test Your Bot!</div>
+        <div class="phase-desc">Send your first event and watch it appear in Google Calendar.</div>
+      </div>
+      <span class="time-badge">~2 min</span>
+    </div>
+
+    <div class="step-card open">
+      <div class="step-header" onclick="toggleStep(this)">
+        <div class="step-num">1</div>
+        <div class="step-title">Send test messages to the bot</div>
+        <div class="step-chevron">⌄</div>
+      </div>
+      <div class="step-body">
+        <div class="substep">
+          <div class="substep-num">a</div>
+          <div class="substep-content">
+            <div class="substep-title">Open your Telegram group (or DM the bot)</div>
+            <div class="substep-desc">Send <b>/start</b> first to confirm the bot is alive. Then try these test messages:</div>
+            <div class="code">dentist 23 May 2026, at 14:45</div>
+            <div class="code">4.12.26, 9am doctor for kid</div>
+            <div class="code">bring fruits to the kita, 30 of June</div>
+            <div class="code">meeting tomorrow at 3pm</div>
+          </div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">b</div>
+          <div class="substep-content">
+            <div class="substep-title">What to expect</div>
+            <div class="substep-desc">
+              The bot should reply with something like:<br><br>
+              <b>✅ Event created!</b><br>
+              📌 Dentist appointment<br>
+              📅 2026-05-23 at 14:45<br>
+              👥 Invites sent to all members!<br>
+              [View in Google Calendar]
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-header" onclick="toggleStep(this)">
+        <div class="step-num">2</div>
+        <div class="step-title">Troubleshooting</div>
+        <div class="step-chevron">⌄</div>
+      </div>
+      <div class="step-body">
+        <div class="substep">
+          <div class="substep-num">🔴</div>
+          <div class="substep-content">
+            <div class="substep-title">Bot doesn't respond at all</div>
+            <div class="substep-desc">Check Railway → Deployments tab → click the latest deploy → view logs. Look for errors. Most likely <b>TELEGRAM_TOKEN</b> is wrong.</div>
+          </div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">🟡</div>
+          <div class="substep-content">
+            <div class="substep-title">"Gemini API error"</div>
+            <div class="substep-desc">Your <b>GEMINI_API_KEY</b> is invalid or not copied correctly. Go back to aistudio.google.com and create a fresh key.</div>
+          </div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">🟡</div>
+          <div class="substep-content">
+            <div class="substep-title">"Google Calendar error: 403"</div>
+            <div class="substep-desc">The service account doesn't have permission on the calendar. Go back to Google Calendar settings and re-share the calendar with the service account email with "Make changes to events" permission.</div>
+          </div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">🟡</div>
+          <div class="substep-content">
+            <div class="substep-title">Events created but no email invites</div>
+            <div class="substep-desc">Check your spam folder — Google may put the first calendar invite there. Also verify the emails in <b>MEMBER_EMAILS</b> are exactly right.</div>
+          </div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">🔵</div>
+          <div class="substep-content">
+            <div class="substep-title">View Railway logs anytime</div>
+            <div class="substep-desc">Railway → your project → <b>Logs</b> tab. Every bot interaction is logged here for debugging.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-header" onclick="toggleStep(this)">
+        <div class="step-num">3</div>
+        <div class="step-title">You're live! 🎉</div>
+        <div class="step-chevron">⌄</div>
+      </div>
+      <div class="step-body">
+        <div class="substep">
+          <div class="substep-num">✅</div>
+          <div class="substep-content">
+            <div class="substep-title">Share the bot with your family</div>
+            <div class="substep-desc">Add the bot to your family Telegram group. Anyone in the group can send event messages — they all go to the shared calendar with invites for everyone.</div>
+          </div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">💡</div>
+          <div class="substep-content">
+            <div class="substep-title">Bot runs 24/7 for free</div>
+            <div class="substep-desc">Railway keeps it running. You don't need to do anything. The $5/month free credit easily covers a lightweight Python bot.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav-buttons">
+      <button class="btn btn-secondary" onclick="goTo(4)">← Previous</button>
+      <button class="btn btn-primary" style="background:var(--done)" onclick="celebrate()">🎉 All Done!</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+let current = 0;
+
+function goTo(index) {
+  document.getElementById(`phase-${current}`).classList.remove('active');
+  document.getElementById(`prog-${current}`).classList.remove('active');
+  if (current < index) {
+    document.getElementById(`prog-${current}`).classList.add('completed');
+    document.getElementById(`prog-${current}`).querySelector('.prog-num').textContent = '✓';
+  }
+  current = index;
+  document.getElementById(`phase-${current}`).classList.add('active');
+  document.getElementById(`prog-${current}`).classList.add('active');
+  document.getElementById(`prog-${current}`).classList.remove('completed');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function toggleStep(header) {
+  const card = header.parentElement;
+  card.classList.toggle('open');
+}
+
+function checkDone(cb) {
+  // visual feedback only
+}
+
+function copyCode(btn) {
+  const code = btn.parentElement;
+  const text = code.innerText.replace('copy\n', '').replace('/newbot\n', '/newbot').trim();
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = '✓ copied!';
+    setTimeout(() => btn.textContent = 'copy', 2000);
+  });
+}
+
+function celebrate() {
+  alert("🎉 Congratulations! Your Telegram → Google Calendar bot is live!\n\nShare the bot with your family and start sending events!");
+}
+
+// Auto-open first card of active phase
+document.querySelectorAll('.step-header').forEach(h => {
+  h.addEventListener('click', () => {});
+});
+</script>
+</body>
+</html>
